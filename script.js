@@ -101,27 +101,42 @@ function renderMemberList() {
     `).join('');
 }
 
-// แก้ไขฟังก์ชันบันทึก: ส่งขึ้น Firebase
-function saveAttendance() {
+async function saveAttendance() {
+    // 1. เช็ครหัสผ่านก่อน
     if (!checkAuth()) return;
+
     const date = document.getElementById('workDate').value;
     const rows = document.querySelectorAll('#memberList tr');
     if (!date) { alert("กรุณาเลือกวันที่"); return; }
 
-    // เตรียมข้อมูลเพื่อส่งขึ้น Firebase
-    rows.forEach(row => {
-        const name = row.querySelector('.name-cell').innerText;
-        const status = row.querySelector('.status-select').value;
+    try {
+        // 2. ตรวจสอบใน Firebase ว่าวันที่นี้มีข้อมูลอยู่แล้วหรือไม่
+        const snapshot = await db.ref('attendance/' + date).once('value');
 
-        // บันทึกลงเส้นทาง attendance/วันที่/ชื่อ
-        // ใช้ .replace เพื่อป้องกันชื่อที่มีตัวอักขระพิเศษที่ Firebase ไม่รองรับ
-        const safeName = name.replace(/[.#$[\]]/g, "");
-        db.ref('attendance/' + date + '/' + safeName).set({
-            status: status
+        if (snapshot.exists()) {
+            // ถ้ามีข้อมูลอยู่แล้ว ให้แจ้งเตือนและหยุดการทำงาน
+            alert(`❌ วันที่ ${date} มีการบันทึกข้อมูลไปแล้ว\nหากต้องการแก้ไข ให้ใช้ปุ่มแก้ไข (✏️) ในตารางสรุปแทนครับ`);
+            return;
+        }
+
+        // 3. ถ้ายังไม่มีข้อมูล ให้ทำการบันทึกตามปกติ
+        rows.forEach(row => {
+            const name = row.querySelector('.name-cell').innerText;
+            const status = row.querySelector('.status-select').value;
+            const safeName = name.replace(/[.#$[\]]/g, "");
+
+            db.ref('attendance/' + date + '/' + safeName).set({
+                status: status,
+                timestamp: Date.now()
+            });
         });
-    });
 
-    alert("✅ บันทึกข้อมูลเข้าเซิร์ฟเวอร์เรียบร้อย!");
+        alert("✅ บันทึกข้อมูลสำเร็จ!");
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
+    }
 }
 
 // ฟังก์ชันใหม่: คอยฟังข้อมูลจาก Firebase (ถ้าเครื่องไหนบันทึก ทุกเครื่องจะเปลี่ยนตามทันที)
