@@ -1,3 +1,17 @@
+const firebaseConfig = {
+    apiKey: "AIzaSyCq4W4KzOc3UPkxv-_tobyS4BNyaTgYjlw",
+    authDomain: "checkname-smte.firebaseapp.com",
+    databaseURL: "https://checkname-smte-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "checkname-smte",
+    storageBucket: "checkname-smte.firebasestorage.app",
+    messagingSenderId: "493575535452",
+    appId: "1:493575535452:web:e4598e75cf58005952df99"
+};
+
+// เริ่มต้น Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 // 1. ข้อมูลสมาชิก
 const students = [
     { fullname: "นายรัตนโกสินทร์ สาดแสง", nickname: "สิงโต" },
