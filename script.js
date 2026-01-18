@@ -75,11 +75,14 @@ function checkAuth() {
     }
 }
 
+// ... ส่วน firebaseConfig และ students คงเดิม ...
+
 // 3. ฟังก์ชันการทำงาน
 window.onload = function () {
     renderMemberList();
     document.getElementById('workDate').valueAsDate = new Date();
-    loadSummary();
+    // เปลี่ยนจาก loadSummary() เป็น listenToFirebase() เพื่อดึงข้อมูลแบบ Real-time
+    listenToFirebase();
 };
 
 function renderMemberList() {
@@ -98,104 +101,167 @@ function renderMemberList() {
     `).join('');
 }
 
+// แก้ไขฟังก์ชันบันทึก: ส่งขึ้น Firebase
 function saveAttendance() {
     if (!checkAuth()) return;
     const date = document.getElementById('workDate').value;
     const rows = document.querySelectorAll('#memberList tr');
-    let data = JSON.parse(localStorage.getItem('groupAttendance')) || [];
     if (!date) { alert("กรุณาเลือกวันที่"); return; }
 
+    // เตรียมข้อมูลเพื่อส่งขึ้น Firebase
     rows.forEach(row => {
         const name = row.querySelector('.name-cell').innerText;
         const status = row.querySelector('.status-select').value;
-        data.push({ date, name, status });
+
+        // บันทึกลงเส้นทาง attendance/วันที่/ชื่อ
+        // ใช้ .replace เพื่อป้องกันชื่อที่มีตัวอักขระพิเศษที่ Firebase ไม่รองรับ
+        const safeName = name.replace(/[.#$[\]]/g, "");
+        db.ref('attendance/' + date + '/' + safeName).set({
+            status: status
+        });
     });
 
-    localStorage.setItem('groupAttendance', JSON.stringify(data));
-    alert("✅ บันทึกสำเร็จ!");
-    loadSummary();
+    alert("✅ บันทึกข้อมูลเข้าเซิร์ฟเวอร์เรียบร้อย!");
 }
 
-function loadSummary() {
-    const data = JSON.parse(localStorage.getItem('groupAttendance')) || [];
+// ฟังก์ชันใหม่: คอยฟังข้อมูลจาก Firebase (ถ้าเครื่องไหนบันทึก ทุกเครื่องจะเปลี่ยนตามทันที)
+function listenToFirebase() {
+    db.ref('attendance').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const displayList = [];
+
+        if (data) {
+            // แปลงโครงสร้าง Firebase (Object) ให้เป็น Array เพื่อใช้แสดงผล
+            Object.keys(data).forEach(date => {
+                Object.keys(data[date]).forEach(name => {
+                    displayList.push({
+                        date: date,
+                        name: name,
+                        status: data[date][name].status
+                    });
+                });
+            });
+        }
+
+        // นำข้อมูลที่ได้ไปแสดงผล
+        renderSummaryTable(displayList);
+        updateRanking(displayList);
+    });
+}
+
+function renderSummaryTable(allData) {
     const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : "";
     const summaryBody = document.getElementById('summaryBody');
-    let filteredData = filterDate ? data.filter(item => item.date === filterDate) : data;
+
+    let filteredData = filterDate ? allData.filter(item => item.date === filterDate) : allData;
     const displayData = [...filteredData].reverse();
 
     if (displayData.length === 0) {
         summaryBody.innerHTML = `<tr><td colspan="5">ไม่มีข้อมูล</td></tr>`;
     } else {
-        summaryBody.innerHTML = displayData.map((item) => {
-            const actualIndex = data.findIndex(d => d.date === item.date && d.name === item.name);
-            return `
-                <tr id="row-${actualIndex}">
-                    <td>${item.date}</td>
-                    <td class="name-cell">${item.name}</td>
-                    <td class="status-cell" style="color: ${item.status === 'ขาดงาน' ? 'red' : 'green'}">
-                        ${item.status}
-                    </td>
-                    <td><button onclick="editRow(${actualIndex}, '${item.status}')">✏️ แก้ไข</button></td>
-                    <td><button onclick="deleteRow(${actualIndex})">🗑️</button></td>
-                </tr>
-            `;
-        }).join('');
+        summaryBody.innerHTML = displayData.map((item) => `
+            <tr>
+                <td>${item.date}</td>
+                <td class="name-cell">${item.name}</td>
+                <td class="status-cell" style="color: ${item.status === 'ขาดงาน' ? 'red' : 'green'}">
+                    ${item.status}
+                </td>
+                <td><button onclick="editOnline('${item.date}', '${item.name}', '${item.status}')">✏️ แก้ไข</button></td>
+                <td><button onclick="deleteOnline('${item.date}', '${item.name}')">🗑️</button></td>
+            </tr>
+        `).join('');
     }
-    updateRanking(data);
 }
 
-function editRow(index, currentStatus) {
+// ฟังก์ชันลบข้อมูลบน Firebase
+function deleteOnline(date, name) {
     if (!checkAuth()) return;
-    const row = document.getElementById(`row-${index}`);
-    const statusCell = row.querySelector('.status-cell');
-    statusCell.innerHTML = `
-        <select id="edit-select-${index}" onchange="updateStatus(${index})" style="padding:5px;">
-            <option value="มาทำงาน" ${currentStatus === 'มาทำงาน' ? 'selected' : ''}>✅ มาทำงาน</option>
-            <option value="ขาดงาน" ${currentStatus === 'ขาดงาน' ? 'selected' : ''}>❌ ขาดงาน</option>
-        </select>
-    `;
+    if (confirm("ลบข้อมูลของ " + name + " วันที่ " + date + "?")) {
+        db.ref('attendance/' + date + '/' + name).remove();
+    }
 }
 
-function updateStatus(index) {
-    let data = JSON.parse(localStorage.getItem('groupAttendance'));
-    data[index].status = document.getElementById(`edit-select-${index}`).value;
-    localStorage.setItem('groupAttendance', JSON.stringify(data));
-    loadSummary();
-}
-
-function deleteRow(index) {
+// ฟังก์ชันแก้ไขข้อมูลบน Firebase
+function editOnline(date, name, currentStatus) {
     if (!checkAuth()) return;
-    let data = JSON.parse(localStorage.getItem('groupAttendance'));
-    data.splice(index, 1);
-    localStorage.setItem('groupAttendance', JSON.stringify(data));
-    loadSummary();
+    const newStatus = currentStatus === "มาทำงาน" ? "ขาดงาน" : "มาทำงาน";
+    db.ref('attendance/' + date + '/' + name).update({
+        status: newStatus
+    });
 }
 
 function clearData() {
     if (!checkAuth()) return;
-    if (confirm("ล้างข้อมูลทั้งหมด?")) {
-        localStorage.removeItem('groupAttendance');
-        loadSummary();
+    if (confirm("⚠️ ล้างข้อมูลทั้งหมดในฐานข้อมูลออนไลน์?")) {
+        db.ref('attendance').remove();
     }
 }
 
+// ฟังก์ชัน updateRanking และอื่นๆ ใช้ชุดเดิมได้เลย แต่เปลี่ยนตัวรับข้อมูลจาก localStorage เป็น data จาก Firebase
+
+// ฟังก์ชันล้างตัวกรอง (Reset Filter)
 function resetFilter() {
-    if (document.getElementById('filterDate')) {
-        document.getElementById('filterDate').value = "";
-        loadSummary();
+    const filterInput = document.getElementById('filterDate');
+    if (filterInput) {
+        filterInput.value = "";
+        // เมื่อล้างค่า ให้ดึงข้อมูลมาแสดงใหม่ทั้งหมด
+        listenToFirebase();
     }
 }
 
-function updateRanking(data) {
+// ฟังก์ชันสรุปอันดับ (Ranking) แบบ Real-time
+function updateRanking(allData) {
     const stats = {};
-    students.forEach(s => stats[`${s.fullname} (${s.nickname})`] = { attend: 0, absent: 0 });
-    data.forEach(item => {
+
+    // ตั้งค่าเริ่มต้นให้ทุกคนเป็น 0
+    students.forEach(s => {
+        const key = `${s.fullname} (${s.nickname})`;
+        stats[key] = { attend: 0, absent: 0 };
+    });
+
+    // นับคะแนนจากข้อมูล Firebase
+    allData.forEach(item => {
         if (stats[item.name]) {
-            if (item.status === "มาทำงาน") stats[item.name].attend++;
-            if (item.status === "ขาดงาน") stats[item.name].absent++;
+            if (item.status === "มาทำงาน") {
+                stats[item.name].attend++;
+            } else if (item.status === "ขาดงาน") {
+                stats[item.name].absent++;
+            }
         }
     });
-    const rankingArray = Object.keys(stats).map(key => ({ name: key, attend: stats[key].attend, absent: stats[key].absent }));
-    document.getElementById('topWorkers').innerHTML = [...rankingArray].sort((a, b) => b.attend - a.attend).map((s, i) => `<li><span>${i + 1}. ${s.name}</span> <span class="count-badge">${s.attend} ครั้ง</span></li>`).join('');
-    document.getElementById('topAbsentees').innerHTML = [...rankingArray].sort((a, b) => b.absent - a.absent).map((s, i) => `<li><span>${i + 1}. ${s.name}</span> <span class="count-badge" style="background:red;">${s.absent} ครั้ง</span></li>`).join('');
+
+    // แปลงเป็น Array เพื่อเรียงลำดับ
+    const rankingArray = Object.keys(stats).map(key => ({
+        name: key,
+        attend: stats[key].attend,
+        absent: stats[key].absent
+    }));
+
+    // 1. เรียงอันดับคนมาบ่อย (มาก -> น้อย)
+    const topWorkersHTML = [...rankingArray]
+        .sort((a, b) => b.attend - a.attend)
+        .map((s, i) => `
+            <li>
+                <span>${i + 1}. ${s.name}</span>
+                <span class="count-badge">${s.attend} ครั้ง</span>
+            </li>
+        `).join('');
+
+    // 2. เรียงอันดับคนขาดบ่อย (มาก -> น้อย)
+    const topAbsenteesHTML = [...rankingArray]
+        .sort((a, b) => b.absent - a.absent)
+        .filter(s => s.absent > 0) // แสดงเฉพาะคนที่มีสถิติขาด
+        .map((s, i) => `
+            <li>
+                <span>${i + 1}. ${s.name}</span>
+                <span class="count-badge" style="background: #e74c3c;">${s.absent} ครั้ง</span>
+            </li>
+        `).join('');
+
+    // นำไปใส่ใน HTML
+    const topWorkersEl = document.getElementById('topWorkers');
+    const topAbsenteesEl = document.getElementById('topAbsentees');
+
+    if (topWorkersEl) topWorkersEl.innerHTML = topWorkersHTML;
+    if (topAbsenteesEl) topAbsenteesEl.innerHTML = topAbsenteesHTML || "<li>ไม่มีข้อมูลการขาดงาน</li>";
 }
