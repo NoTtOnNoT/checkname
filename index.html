@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ระบบเช็คชื่อทำงาน ม.4/1</title>
+
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+
+        <div class="container">
+            <header>
+                <h1>📋 เช็คชื่อทำงานที่โรงเรียน</h1>
+                <p>ม.4/1</p>
+            </header>
+
+            <section class="check-in-section">
+                <div class="date-picker">
+                    <label>เลือกวันที่ทำงาน: </label>
+                    <input type="date" id="workDate">
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>เลขที่</th>
+                                <th>ชื่อ-นามสกุล (ชื่อเล่น)</th>
+                                <th>สถานะการมาทำงาน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memberList">
+                        </tbody>
+                    </table>
+                </div>
+                <button class="save-btn" onclick="saveAttendance()">💾
+                    บันทึกข้อมูลวันนี้</button>
+            </section>
+
+            <hr>
+
+            <section class="summary-section">
+                <h3>📊 ตารางสรุปการเข้าทำงาน</h3>
+
+                <div class="filter-box"
+                    style="text-align: center; margin-bottom: 15px; background: #f0f7ff; padding: 15px; border-radius: 10px;">
+                    <label>🔍 ดูประวัติย้อนหลังเฉพาะวันที่: </label>
+                    <input type="date" id="filterDate" onchange="loadSummary()">
+                    <button onclick="resetFilter()"
+                        style="padding: 5px 12px; cursor: pointer; background:#3498db; color:white; border:none; border-radius:4px;">ดูทั้งหมด</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>วันที่</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>สถานะ</th>
+                                <th>แก้ไข</th> <th>ลบ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryBody">
+                        </tbody>
+                    </table>
+                </div>
+                <button class="clear-btn"
+                    onclick="clearData()">ล้างข้อมูลทั้งหมด</button>
+            </section>
+
+            <hr>
+
+            <section class="ranking-section">
+                <h3>🏆 สรุปอันดับการมาทำงาน (ครบ 30 คน)</h3>
+                <div class="ranking-container">
+                    <div class="rank-box">
+                        <h4>🌟 มาาาาาาา</h4>
+                        <ul id="topWorkers"></ul>
+                    </div>
+                    <div class="rank-box">
+                        <h4>🚩 OT เจอกัน</h4>
+                        <ul id="topAbsentees"></ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <script src="script.js"></script>
+    </body>
+</html>
