@@ -1,3 +1,4 @@
+// 1. Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyCq4W4KzOc3UPkxv-_tobyS4BNyaTgYjlw",
     authDomain: "checkname-smte.firebaseapp.com",
@@ -8,11 +9,12 @@ const firebaseConfig = {
     appId: "1:493575535452:web:e4598e75cf58005952df99"
 };
 
-// เริ่มต้น Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.database();
 
-// 1. ข้อมูลสมาชิก
+// 2. ข้อมูลสมาชิก (30 คน)
 const students = [
     { fullname: "นายรัตนโกสินทร์ สาดแสง", nickname: "สิงโต" },
     { fullname: "นายธัญวิน อร่ามวงศ์วิทย์", nickname: "อะฟิฟ" },
@@ -43,50 +45,126 @@ const students = [
     { fullname: "นางสาวลลนา สังข์แก้ว", nickname: "ตอง" },
     { fullname: "นางสาวธัญญรัตน์ เส้งนนท์", nickname: "เทียน" },
     { fullname: "นางสาวภูริชญา โสะบิลเมาะ", nickname: "นานะ" },
-    { fullname: "นางสาวกัญญาภัทร แแสงรักษ์", nickname: "ด้า" }
+    { fullname: "นางสาวกัญญาภัทร แสงรักษ์", nickname: "ด้า" }
 ];
 
 const HASHED_PASSWORD = "ed8b00d9c766c03570a1a0a7e4d52c3d";
 
-function checkAuth() {
-    let inputPass = prompt("🔐 กรุณาใส่รหัสผ่าน :");
-    if (inputPass === null) return false;
+// --- ฟังก์ชันช่วยเหลือ ---
+function getSafeName(name) {
+    return name.replace(/[.#$[\]]/g, "");
+}
 
-    // ตัดช่องว่างหน้าหลัง
-    inputPass = inputPass.trim();
+function getStudentNo(fullNameWithNickname) {
+    const index = students.findIndex(s => `${s.fullname} (${s.nickname})` === fullNameWithNickname);
+    return index !== -1 ? index + 1 : 30;
+}
 
-    // ตรวจสอบ Library
-    if (typeof CryptoJS === 'undefined') {
-        alert("❌ ไม่พบ Library CryptoJS กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
-        return false;
+// --- การทำงานเมื่อโหลดหน้าเว็บ ---
+window.onload = function () {
+    renderMemberList(); // สร้างตารางเช็คชื่อ (Admin)
+    renderIndividualGrid(); // สร้างรายชื่อเรียงลงมา (Dashboard)
+
+    if (document.getElementById('workDate')) {
+        document.getElementById('workDate').valueAsDate = new Date();
     }
 
-    const inputHash = CryptoJS.MD5(inputPass).toString();
+    listenToFirebase();
 
-    // แสดงใน Console เพื่อเช็ค (กด F12 ดูได้)
-    console.log("Input:", inputPass);
-    console.log("Hash:", inputHash);
+    // เพิ่มบรรทัดนี้: เพื่อให้เปิดหน้า "มาบ่อย" ทันทีที่เข้าเว็บ
+    switchDashboardTab('top');
+};
 
-    if (inputHash === HASHED_PASSWORD) {
-        return true;
-    } else {
-        alert("❌ รหัสไม่ถูกต้อง!");
-        return false;
+// --- ฟังก์ชัน Dashboard Tab ---
+function switchDashboardTab(tabName) {
+    document.querySelectorAll('.dash-section').forEach(sec => sec.style.display = 'none');
+    const buttons = ['btn-show-top', 'btn-show-absent', 'btn-show-history', 'btn-show-individual'];
+    buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active-tab');
+    });
+    const targetSection = document.getElementById('dash-' + tabName);
+    const targetBtn = document.getElementById('btn-show-' + tabName);
+    if (targetSection) targetSection.style.display = 'block';
+    if (targetBtn) targetBtn.classList.add('active-tab');
+}
+
+// --- ฟังก์ชันแสดงรายชื่อรายบุคคล (ลบเลขที่ออกแล้ว) ---
+function renderIndividualGrid() {
+    const listContainer = document.getElementById('individualMemberList');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = students.map((std) => `
+        <button class="btn-name-row" onclick="showIndividualHistory('${std.fullname} (${std.nickname})')">
+            <span class="name">${std.fullname} (${std.nickname})</span>
+            <span style="margin-left: auto; color: #ccc;">❯</span>
+        </button>
+    `).join('');
+}
+
+// --- ฟังก์ชันเปิด Popup ประวัติรายคน ---
+async function showIndividualHistory(fullName) {
+    const modal = document.getElementById('individualModal');
+    const nameHeader = document.getElementById('selectedName');
+    const tableBody = document.getElementById('individualTableBody');
+    nameHeader.innerText = fullName;
+    tableBody.innerHTML = '<tr><td colspan="2">กำลังโหลดประวัติ...</td></tr>';
+    modal.style.display = "block";
+    try {
+        const snapshot = await db.ref('attendance').once('value');
+        const data = snapshot.val();
+        let historyHtml = '';
+        let hasData = false;
+        if (data) {
+            const dates = Object.keys(data).sort((a, b) => b.localeCompare(a));
+            const safeName = getSafeName(fullName);
+            dates.forEach(date => {
+                if (data[date][safeName]) {
+                    hasData = true;
+                    const status = data[date][safeName].status;
+                    const color = status === 'ขาดงาน' ? '#e74c3c' : '#27ae60';
+                    historyHtml += `
+                        <tr>
+                            <td>${date}</td>
+                            <td style="color: ${color}; font-weight:bold;">${status}</td>
+                        </tr>`;
+                }
+            });
+        }
+        tableBody.innerHTML = hasData ? historyHtml : '<tr><td colspan="2">ไม่พบประวัติการทำงาน</td></tr>';
+    } catch (error) {
+        tableBody.innerHTML = '<tr><td colspan="2">เกิดข้อผิดพลาด</td></tr>';
     }
 }
 
-// ... ส่วน firebaseConfig และ students คงเดิม ...
+function closeIndividualModal() {
+    document.getElementById('individualModal').style.display = "none";
+}
 
-// 3. ฟังก์ชันการทำงาน
-window.onload = function () {
-    renderMemberList();
-    document.getElementById('workDate').valueAsDate = new Date();
-    // เปลี่ยนจาก loadSummary() เป็น listenToFirebase() เพื่อดึงข้อมูลแบบ Real-time
-    listenToFirebase();
-};
+function listenToFirebase() {
+    db.ref('attendance').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const allData = [];
+        if (data) {
+            Object.keys(data).forEach(date => {
+                Object.keys(data[date]).forEach(name => {
+                    allData.push({ date, name, status: data[date][name].status });
+                });
+            });
+        }
+        const filterDateInput = document.getElementById('filterDate');
+        const filterDate = filterDateInput ? filterDateInput.value : "";
+        const displayData = filterDate ? allData.filter(i => i.date === filterDate) : allData;
+        renderUserTable(displayData);
+        renderAdminTable(displayData);
+        updateRanking(allData);
+    });
+}
 
+// --- Admin Logic ---
 function renderMemberList() {
     const list = document.getElementById('memberList');
+    if (!list) return;
     list.innerHTML = students.map((std, index) => `
         <tr>
             <td>${index + 1}</td>
@@ -102,181 +180,141 @@ function renderMemberList() {
 }
 
 async function saveAttendance() {
-    // 1. เช็ครหัสผ่านก่อน
-    if (!checkAuth()) return;
-
     const date = document.getElementById('workDate').value;
     const rows = document.querySelectorAll('#memberList tr');
-    if (!date) { alert("กรุณาเลือกวันที่"); return; }
-
-    try {
-        // 2. ตรวจสอบใน Firebase ว่าวันที่นี้มีข้อมูลอยู่แล้วหรือไม่
-        const snapshot = await db.ref('attendance/' + date).once('value');
-
-        if (snapshot.exists()) {
-            // ถ้ามีข้อมูลอยู่แล้ว ให้แจ้งเตือนและหยุดการทำงาน
-            alert(`❌ วันที่ ${date} มีการบันทึกข้อมูลไปแล้ว\nหากต้องการแก้ไข ให้ใช้ปุ่มแก้ไข (✏️) ในตารางสรุปแทนครับ`);
-            return;
-        }
-
-        // 3. ถ้ายังไม่มีข้อมูล ให้ทำการบันทึกตามปกติ
-        rows.forEach(row => {
-            const name = row.querySelector('.name-cell').innerText;
-            const status = row.querySelector('.status-select').value;
-            const safeName = name.replace(/[.#$[\]]/g, "");
-
-            db.ref('attendance/' + date + '/' + safeName).set({
-                status: status,
-                timestamp: Date.now()
-            });
-        });
-
-        alert("✅ บันทึกข้อมูลสำเร็จ!");
-
-    } catch (error) {
-        console.error(error);
-        alert("❌ เกิดข้อผิดพลาดในการตรวจสอบข้อมูล");
+    if (!date) return alert("⚠️ กรุณาเลือกวันที่");
+    const snapshot = await db.ref('attendance/' + date).once('value');
+    if (snapshot.exists()) {
+        alert(`❌ วันที่ ${date} มีข้อมูลอยู่แล้ว`);
+        return;
     }
-}
-
-// ฟังก์ชันใหม่: คอยฟังข้อมูลจาก Firebase (ถ้าเครื่องไหนบันทึก ทุกเครื่องจะเปลี่ยนตามทันที)
-function listenToFirebase() {
-    db.ref('attendance').on('value', (snapshot) => {
-        const data = snapshot.val();
-        const displayList = [];
-
-        if (data) {
-            // แปลงโครงสร้าง Firebase (Object) ให้เป็น Array เพื่อใช้แสดงผล
-            Object.keys(data).forEach(date => {
-                Object.keys(data[date]).forEach(name => {
-                    displayList.push({
-                        date: date,
-                        name: name,
-                        status: data[date][name].status
-                    });
-                });
-            });
-        }
-
-        // นำข้อมูลที่ได้ไปแสดงผล
-        renderSummaryTable(displayList);
-        updateRanking(displayList);
+    const updates = {};
+    students.forEach((std) => {
+        const fullName = `${std.fullname} (${std.nickname})`;
+        const safeName = getSafeName(fullName);
+        const row = Array.from(rows).find(r => r.querySelector('.name-cell').innerText === fullName);
+        const status = row ? row.querySelector('.status-select').value : "ขาดงาน";
+        updates[safeName] = { status: status, timestamp: firebase.database.ServerValue.TIMESTAMP };
     });
+    await db.ref('attendance/' + date).set(updates);
+    alert("✅ บันทึกสำเร็จ!");
+    switchAdminTab('edit');
 }
 
-function renderSummaryTable(allData) {
-    const filterDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : "";
-    const summaryBody = document.getElementById('summaryBody');
-
-    let filteredData = filterDate ? allData.filter(item => item.date === filterDate) : allData;
-    const displayData = [...filteredData].reverse();
-
-    if (displayData.length === 0) {
-        summaryBody.innerHTML = `<tr><td colspan="5">ไม่มีข้อมูล</td></tr>`;
+function switchAdminTab(tabName) {
+    const sectionCheckin = document.getElementById('section-checkin');
+    const sectionEdit = document.getElementById('section-edit');
+    if (tabName === 'checkin') {
+        sectionCheckin.style.display = 'block';
+        sectionEdit.style.display = 'none';
+        document.getElementById('btn-tab-checkin').classList.add('active-tab');
+        document.getElementById('btn-tab-edit').classList.remove('active-tab');
     } else {
-        summaryBody.innerHTML = displayData.map((item) => `
-            <tr>
-                <td>${item.date}</td>
-                <td class="name-cell">${item.name}</td>
-                <td class="status-cell" style="color: ${item.status === 'ขาดงาน' ? 'red' : 'green'}">
-                    ${item.status}
-                </td>
-                <td><button onclick="editOnline('${item.date}', '${item.name}', '${item.status}')">✏️ แก้ไข</button></td>
-                <td><button onclick="deleteOnline('${item.date}', '${item.name}')">🗑️</button></td>
-            </tr>
-        `).join('');
+        sectionCheckin.style.display = 'none';
+        sectionEdit.style.display = 'block';
+        document.getElementById('btn-tab-edit').classList.add('active-tab');
+        document.getElementById('btn-tab-checkin').classList.remove('active-tab');
     }
 }
 
-// ฟังก์ชันลบข้อมูลบน Firebase
-function deleteOnline(date, name) {
-    if (!checkAuth()) return;
-    if (confirm("ลบข้อมูลของ " + name + " วันที่ " + date + "?")) {
-        db.ref('attendance/' + date + '/' + name).remove();
+function enterAdminMode() {
+    let inputPass = prompt("🔐 รหัสผ่านแอดมิน :");
+    if (!inputPass) return;
+    const inputHash = CryptoJS.MD5(inputPass.trim()).toString();
+    if (inputHash === HASHED_PASSWORD) {
+        document.getElementById('page-dashboard').classList.remove('active');
+        document.getElementById('page-admin').classList.add('active');
+        switchAdminTab('checkin');
+    } else { alert("❌ รหัสไม่ถูกต้อง!"); }
+}
+
+function exitAdminMode() {
+    document.getElementById('page-admin').classList.remove('active');
+    document.getElementById('page-dashboard').classList.add('active');
+}
+
+function renderUserTable(data) {
+    const body = document.getElementById('summaryBody');
+    if (!body) return;
+    const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date) || getStudentNo(a.name) - getStudentNo(b.name));
+    body.innerHTML = sorted.map(item => `
+        <tr>
+            <td>${item.date}</td>
+            <td>${getStudentNo(item.name)}. ${item.name}</td>
+            <td style="color: ${item.status === 'ขาดงาน' ? '#e74c3c' : '#27ae60'}; font-weight:bold;">${item.status}</td>
+        </tr>`).join('') || '<tr><td colspan="3">ไม่มีข้อมูล</td></tr>';
+}
+
+function renderAdminTable(data) {
+    const body = document.getElementById('adminSummaryBody');
+    if (!body) return;
+    const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date) || getStudentNo(a.name) - getStudentNo(b.name));
+    body.innerHTML = sorted.map(item => {
+        const safeName = getSafeName(item.name);
+        return `<tr>
+            <td>${item.date}</td>
+            <td>${getStudentNo(item.name)}. ${item.name}</td>
+            <td style="color:${item.status === 'ขาดงาน' ? '#e74c3c' : '#27ae60'}">${item.status}</td>
+            <td><button onclick="editOnline('${item.date}','${safeName}','${item.status}')">✏️</button></td>
+            <td><button onclick="deleteOnline('${item.date}','${safeName}')">🗑️</button></td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="5">ไม่มีข้อมูล</td></tr>';
+}
+
+function editOnline(date, safeName, currentStatus) {
+    const nextStatus = (currentStatus === "มาทำงาน") ? "ขาดงาน" : "มาทำงาน";
+    if (confirm(`เปลี่ยนเป็น ${nextStatus}?`)) {
+        db.ref(`attendance/${date}/${safeName}`).update({ status: nextStatus });
     }
 }
 
-// ฟังก์ชันแก้ไขข้อมูลบน Firebase
-function editOnline(date, name, currentStatus) {
-    if (!checkAuth()) return;
-    const newStatus = currentStatus === "มาทำงาน" ? "ขาดงาน" : "มาทำงาน";
-    db.ref('attendance/' + date + '/' + name).update({
-        status: newStatus
-    });
+function deleteOnline(date, safeName) {
+    if (confirm(`ลบข้อมูลนี้?`)) db.ref(`attendance/${date}/${safeName}`).remove();
 }
 
 function clearData() {
-    if (!checkAuth()) return;
-    if (confirm("⚠️ ล้างข้อมูลทั้งหมดในฐานข้อมูลออนไลน์?")) {
-        db.ref('attendance').remove();
+    if (confirm("⚠️ คุณแน่ใจว่าจะล้างฐานข้อมูลทั้งหมด?")) {
+        let confirmPass = prompt("🔐 กรุณาใส่รหัสผ่านแอดมินเพื่อยืนยัน:");
+        if (confirmPass === null) return;
+        const confirmHash = CryptoJS.MD5(confirmPass.trim()).toString();
+        if (confirmHash === HASHED_PASSWORD) {
+            db.ref('attendance').remove()
+                .then(() => { alert("🗑️ ล้างฐานข้อมูลสำเร็จ"); })
+                .catch((error) => { alert("❌ เกิดข้อผิดพลาด: " + error.message); });
+        } else { alert("❌ รหัสไม่ถูกต้อง!"); }
     }
 }
 
-// ฟังก์ชัน updateRanking และอื่นๆ ใช้ชุดเดิมได้เลย แต่เปลี่ยนตัวรับข้อมูลจาก localStorage เป็น data จาก Firebase
-
-// ฟังก์ชันล้างตัวกรอง (Reset Filter)
 function resetFilter() {
-    const filterInput = document.getElementById('filterDate');
-    if (filterInput) {
-        filterInput.value = "";
-        // เมื่อล้างค่า ให้ดึงข้อมูลมาแสดงใหม่ทั้งหมด
-        listenToFirebase();
-    }
+    document.getElementById('filterDate').value = "";
+    listenToFirebase();
 }
 
-// ฟังก์ชันสรุปอันดับ (Ranking) แบบ Real-time
+// --- ปรับปรุงส่วน Ranking (เพิ่มเลขลำดับหน้าชื่อ) ---
 function updateRanking(allData) {
     const stats = {};
+    students.forEach(s => stats[`${s.fullname} (${s.nickname})`] = { attend: 0, absent: 0 });
+    allData.forEach(item => { if (stats[item.name]) item.status === "มาทำงาน" ? stats[item.name].attend++ : stats[item.name].absent++; });
 
-    // ตั้งค่าเริ่มต้นให้ทุกคนเป็น 0
-    students.forEach(s => {
-        const key = `${s.fullname} (${s.nickname})`;
-        stats[key] = { attend: 0, absent: 0 };
-    });
+    const rankArr = Object.keys(stats).map(key => ({ name: key, ...stats[key] }));
 
-    // นับคะแนนจากข้อมูล Firebase
-    allData.forEach(item => {
-        if (stats[item.name]) {
-            if (item.status === "มาทำงาน") {
-                stats[item.name].attend++;
-            } else if (item.status === "ขาดงาน") {
-                stats[item.name].absent++;
-            }
-        }
-    });
-
-    // แปลงเป็น Array เพื่อเรียงลำดับ
-    const rankingArray = Object.keys(stats).map(key => ({
-        name: key,
-        attend: stats[key].attend,
-        absent: stats[key].absent
-    }));
-
-    // 1. เรียงอันดับคนมาบ่อย (มาก -> น้อย)
-    const topWorkersHTML = [...rankingArray]
-        .sort((a, b) => b.attend - a.attend)
+    const renderList = (arr, type) => arr
+        .filter(s => s[type] > 0)
+        .sort((a, b) => b[type] - a[type])
         .map((s, i) => `
-            <li>
-                <span>${i + 1}. ${s.name}</span>
-                <span class="count-badge">${s.attend} ครั้ง</span>
-            </li>
-        `).join('');
+        <li>
+            <div class="rank-left">
+                <span class="rank-number">${i + 1}.</span> 
+                <span class="rank-name">${s.name}</span>
+            </div>
+            <span class="count-badge">${s[type]} ครั้ง</span>
+        </li>`).join('');
 
-    // 2. เรียงอันดับคนขาดบ่อย (มาก -> น้อย)
-    const topAbsenteesHTML = [...rankingArray]
-        .sort((a, b) => b.absent - a.absent)
-        .filter(s => s.absent > 0) // แสดงเฉพาะคนที่มีสถิติขาด
-        .map((s, i) => `
-            <li>
-                <span>${i + 1}. ${s.name}</span>
-                <span class="count-badge" style="background: #e74c3c;">${s.absent} ครั้ง</span>
-            </li>
-        `).join('');
+    document.getElementById('topWorkers').innerHTML = renderList(rankArr, 'attend') || '<li>ยังไม่มีข้อมูล</li>';
+    document.getElementById('topAbsentees').innerHTML = renderList(rankArr, 'absent') || '<li>ยังไม่มีข้อมูล</li>';
+}
 
-    // นำไปใส่ใน HTML
-    const topWorkersEl = document.getElementById('topWorkers');
-    const topAbsenteesEl = document.getElementById('topAbsentees');
-
-    if (topWorkersEl) topWorkersEl.innerHTML = topWorkersHTML;
-    if (topAbsenteesEl) topAbsenteesEl.innerHTML = topAbsenteesHTML || "<li>ไม่มีข้อมูลการขาดงาน</li>";
+window.onclick = function (event) {
+    const modal = document.getElementById('individualModal');
+    if (event.target == modal) closeIndividualModal();
 }
