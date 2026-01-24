@@ -318,3 +318,74 @@ window.onclick = function (event) {
     const modal = document.getElementById('individualModal');
     if (event.target == modal) closeIndividualModal();
 }
+
+// --- ฟังก์ชันแสดงสรุปรายวันแบบ Popup ---
+async function showDailySummary() {
+    const selectedDate = document.getElementById('filterDate').value;
+    const modal = document.getElementById('summaryModal');
+    const content = document.getElementById('summaryContent');
+    const title = document.getElementById('summaryTitle');
+
+    if (!selectedDate) {
+        alert("⚠️ กรุณาเลือกวันที่ต้องการสรุปก่อน");
+        return;
+    }
+
+    // แสดง Modal พร้อมข้อความกำลังโหลด
+    content.innerHTML = '<p style="text-align:center;">กำลังคำนวณข้อมูล...</p>';
+    modal.style.display = "flex"; // ใช้ flex เพื่อให้กึ่งกลางจอตาม CSS ที่คุณมี
+
+    try {
+        const snapshot = await db.ref('attendance/' + selectedDate).once('value');
+        const data = snapshot.val();
+
+        if (!data) {
+            content.innerHTML = `
+                <div style="text-align:center; padding: 20px;">
+                    <p style="font-size: 3rem; margin: 0;">📅</p>
+                    <p>วันที่ <b>${selectedDate}</b><br>ยังไม่มีข้อมูลการเช็คชื่อในระบบ</p>
+                </div>`;
+            return;
+        }
+
+        let total = 0, present = 0, absent = 0;
+
+        Object.keys(data).forEach(key => {
+            total++;
+            if (data[key].status === 'มาทำงาน') present++;
+            else absent++;
+        });
+
+        // คำนวณเปอร์เซ็นต์ (ถ้าต้องการ)
+        const presentPercent = ((present / total) * 100).toFixed(1);
+
+        // ฉีดเนื้อหา HTML ลงใน Popup
+        content.innerHTML = `
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #3498db;">
+                <p style="margin: 5px 0;">📅 <b>ประจำวันที่:</b> ${selectedDate}</p>
+                <p style="margin: 5px 0;">👥 <b>นักเรียนทั้งหมด:</b> ${total} คน</p>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="background: #eafaf1; padding: 15px; border-radius: 12px; text-align: center;">
+                    <span style="color: #27ae60; font-size: 1.5rem; font-weight: bold;">${present}</span>
+                    <p style="margin: 0; color: #27ae60;">✅ มาทำงาน</p>
+                </div>
+                <div style="background: #fdf2f2; padding: 15px; border-radius: 12px; text-align: center;">
+                    <span style="color: #e74c3c; font-size: 1.5rem; font-weight: bold;">${absent}</span>
+                    <p style="margin: 0; color: #e74c3c;">❌ ขาดงาน</p>
+                </div>
+            </div>
+            <div style="margin-top: 15px; text-align: center; color: #7f8c8d;">
+                <small>คิดเป็นมาทำงาน: ${presentPercent}%</small>
+            </div>
+        `;
+
+    } catch (error) {
+        content.innerHTML = '<p style="color:red; text-align:center;">❌ เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+    }
+}
+
+// ฟังก์ชันปิด Modal
+function closeSummaryModal() {
+    document.getElementById('summaryModal').style.display = "none";
+}

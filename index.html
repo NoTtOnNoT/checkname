@@ -65,6 +65,8 @@
                                 onchange="listenToFirebase()">
                             <button onclick="resetFilter()"
                                 style="padding: 10px; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background: white;">ดูทั้งหมด</button>
+                            <button onclick="showDailySummary()"
+                                style="padding: 10px; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background: white;">สรุป</button>
                         </div>
                         <div class="table-wrapper">
                             <table>
@@ -173,6 +175,18 @@
                         <tbody id="individualTableBody"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <div id="summaryModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeSummaryModal()">&times;</span>
+                <div class="modal-header">
+                    <h2 id="summaryTitle" style="color: #2c3e50; margin: 0;">📊 สรุปประวัติรายวัน</h2>
+                </div>
+                <div id="summaryContent" style="padding: 20px 0; line-height: 1.8;">
+                    </div>
+                <button class="nav-btn-bottom" onclick="closeSummaryModal()" style="margin-top: 10px;">ตกลง</button>
             </div>
         </div>
 
