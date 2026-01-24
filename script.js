@@ -77,16 +77,31 @@ window.onload = function () {
 
 // --- ฟังก์ชัน Dashboard Tab ---
 function switchDashboardTab(tabName) {
-    document.querySelectorAll('.dash-section').forEach(sec => sec.style.display = 'none');
+    // ปิดทุก section
+    document.querySelectorAll('.dash-section').forEach(sec => {
+        sec.style.display = 'none';
+    });
+
+    // แสดงเฉพาะ section ที่เลือก พร้อม Animation
+    const targetSection = document.getElementById('dash-' + tabName);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+
+    // สลับสถานะปุ่ม
     const buttons = ['btn-show-top', 'btn-show-absent', 'btn-show-history', 'btn-show-individual'];
     buttons.forEach(id => {
         const btn = document.getElementById(id);
         if (btn) btn.classList.remove('active-tab');
     });
-    const targetSection = document.getElementById('dash-' + tabName);
+
     const targetBtn = document.getElementById('btn-show-' + tabName);
-    if (targetSection) targetSection.style.display = 'block';
     if (targetBtn) targetBtn.classList.add('active-tab');
+
+    // ถ้าเปิดหน้าประวัติรายบุคคล ให้รีโหลดรายชื่อเพื่อรัน Animation ใหม่
+    if (tabName === 'individual') {
+        renderIndividualGrid();
+    }
 }
 
 // --- ฟังก์ชันแสดงรายชื่อรายบุคคล (ลบเลขที่ออกแล้ว) ---
@@ -94,13 +109,29 @@ function renderIndividualGrid() {
     const listContainer = document.getElementById('individualMemberList');
     if (!listContainer) return;
 
-    listContainer.innerHTML = students.map((std) => `
-        <button class="btn-name-row" onclick="showIndividualHistory('${std.fullname} (${std.nickname})')">
+    listContainer.innerHTML = students.map((std, index) => `
+        <button class="btn-name-row" 
+                style="animation-delay: ${index * 0.03}s" 
+                onclick="showIndividualHistory('${std.fullname} (${std.nickname})')">
+            <span class="st-no">${index + 1}</span>
             <span class="name">${std.fullname} (${std.nickname})</span>
-            <span style="margin-left: auto; color: #ccc;">❯</span>
+            <span style="margin-left: auto; color: #3498db;">❯</span>
         </button>
     `).join('');
 }
+
+// --- ฟังก์ชันปิด Modal เมื่อคลิกพื้นหลัง ---
+window.addEventListener('click', function (event) {
+    const individualModal = document.getElementById('individualModal');
+    const summaryModal = document.getElementById('summaryModal');
+
+    if (event.target === individualModal) {
+        individualModal.style.display = "none";
+    }
+    if (event.target === summaryModal) {
+        summaryModal.style.display = "none";
+    }
+});
 
 // --- ฟังก์ชันเปิด Popup ประวัติรายคน ---
 async function showIndividualHistory(fullName) {
@@ -285,11 +316,6 @@ function clearData() {
     }
 }
 
-function resetFilter() {
-    document.getElementById('filterDate').value = "";
-    listenToFirebase();
-}
-
 // --- ปรับปรุงส่วน Ranking (เพิ่มเลขลำดับหน้าชื่อ) ---
 function updateRanking(allData) {
     const stats = {};
@@ -320,20 +346,77 @@ window.onclick = function (event) {
 }
 
 // --- ฟังก์ชันแสดงสรุปรายวันแบบ Popup ---
+// --- เพิ่มฟังก์ชันเพื่อให้รายชื่อค่อยๆ วิ่งขึ้นมา (Animation) ---
+function renderIndividualGrid() {
+    const listContainer = document.getElementById('individualMemberList');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = students.map((std, index) => `
+        <button class="btn-name-row" 
+                style="animation-delay: ${index * 0.03}s" 
+                onclick="showIndividualHistory('${std.fullname} (${std.nickname})')">
+            <span class="st-no">${index + 1}</span>
+            <span class="name">${std.fullname} (${std.nickname})</span>
+            <span style="margin-left: auto; color: #3498db;">❯</span>
+        </button>
+    `).join('');
+}
+
+// --- ฟังก์ชันปิด Modal เมื่อคลิกพื้นหลัง ---
+window.addEventListener('click', function (event) {
+    const individualModal = document.getElementById('individualModal');
+    const summaryModal = document.getElementById('summaryModal');
+
+    if (event.target === individualModal) {
+        individualModal.style.display = "none";
+    }
+    if (event.target === summaryModal) {
+        summaryModal.style.display = "none";
+    }
+});
+
+// --- ปรับปรุงฟังก์ชัน Dashboard Tab ให้ Smooth ขึ้น ---
+function switchDashboardTab(tabName) {
+    // ปิดทุก section
+    document.querySelectorAll('.dash-section').forEach(sec => {
+        sec.style.display = 'none';
+    });
+
+    // แสดงเฉพาะ section ที่เลือก พร้อม Animation
+    const targetSection = document.getElementById('dash-' + tabName);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+
+    // สลับสถานะปุ่ม
+    const buttons = ['btn-show-top', 'btn-show-absent', 'btn-show-history', 'btn-show-individual'];
+    buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active-tab');
+    });
+
+    const targetBtn = document.getElementById('btn-show-' + tabName);
+    if (targetBtn) targetBtn.classList.add('active-tab');
+
+    // ถ้าเปิดหน้าประวัติรายบุคคล ให้รีโหลดรายชื่อเพื่อรัน Animation ใหม่
+    if (tabName === 'individual') {
+        renderIndividualGrid();
+    }
+}
+
+// --- ปรับปรุงหน้าตา Summary Popup ให้พรีเมียมขึ้น ---
 async function showDailySummary() {
     const selectedDate = document.getElementById('filterDate').value;
     const modal = document.getElementById('summaryModal');
     const content = document.getElementById('summaryContent');
-    const title = document.getElementById('summaryTitle');
 
     if (!selectedDate) {
         alert("⚠️ กรุณาเลือกวันที่ต้องการสรุปก่อน");
         return;
     }
 
-    // แสดง Modal พร้อมข้อความกำลังโหลด
-    content.innerHTML = '<p style="text-align:center;">กำลังคำนวณข้อมูล...</p>';
-    modal.style.display = "flex"; // ใช้ flex เพื่อให้กึ่งกลางจอตาม CSS ที่คุณมี
+    content.innerHTML = '<div class="loader">กำลังคำนวณข้อมูล...</div>';
+    modal.style.display = "flex";
 
     try {
         const snapshot = await db.ref('attendance/' + selectedDate).once('value');
@@ -343,49 +426,124 @@ async function showDailySummary() {
             content.innerHTML = `
                 <div style="text-align:center; padding: 20px;">
                     <p style="font-size: 3rem; margin: 0;">📅</p>
-                    <p>วันที่ <b>${selectedDate}</b><br>ยังไม่มีข้อมูลการเช็คชื่อในระบบ</p>
+                    <p style="color:#7f8c8d;">วันที่ <b>${selectedDate}</b><br>ยังไม่มีข้อมูลการเช็คชื่อ</p>
                 </div>`;
             return;
         }
 
         let total = 0, present = 0, absent = 0;
+        let absentList = [];
 
         Object.keys(data).forEach(key => {
             total++;
-            if (data[key].status === 'มาทำงาน') present++;
-            else absent++;
+            if (data[key].status === 'มาทำงาน') {
+                present++;
+            } else {
+                absent++;
+                absentList.push(key); // เก็บชื่อคนขาดไว้แสดง
+            }
         });
 
-        // คำนวณเปอร์เซ็นต์ (ถ้าต้องการ)
-        const presentPercent = ((present / total) * 100).toFixed(1);
+        const presentPercent = ((present / total) * 100).toFixed(0);
 
-        // ฉีดเนื้อหา HTML ลงใน Popup
         content.innerHTML = `
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #3498db;">
-                <p style="margin: 5px 0;">📅 <b>ประจำวันที่:</b> ${selectedDate}</p>
-                <p style="margin: 5px 0;">👥 <b>นักเรียนทั้งหมด:</b> ${total} คน</p>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div style="background: #eafaf1; padding: 15px; border-radius: 12px; text-align: center;">
-                    <span style="color: #27ae60; font-size: 1.5rem; font-weight: bold;">${present}</span>
-                    <p style="margin: 0; color: #27ae60;">✅ มาทำงาน</p>
-                </div>
-                <div style="background: #fdf2f2; padding: 15px; border-radius: 12px; text-align: center;">
-                    <span style="color: #e74c3c; font-size: 1.5rem; font-weight: bold;">${absent}</span>
-                    <p style="margin: 0; color: #e74c3c;">❌ ขาดงาน</p>
+            <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align:center;">
+                <span style="font-size: 0.9rem; color: #555;">สถิติการมาทำงาน</span>
+                <h2 style="margin: 5px 0; color: #2c3e50;">${presentPercent}%</h2>
+                <div style="width:100%; background:#ddd; height:8px; border-radius:10px; overflow:hidden;">
+                    <div style="width:${presentPercent}%; background:#27ae60; height:100%;"></div>
                 </div>
             </div>
-            <div style="margin-top: 15px; text-align: center; color: #7f8c8d;">
-                <small>คิดเป็นมาทำงาน: ${presentPercent}%</small>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom:20px;">
+                <div style="background: #eafaf1; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid #2ecc71;">
+                    <small style="color:#27ae60;">มาทำงาน</small>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #27ae60;">${present}</div>
+                </div>
+                <div style="background: #fff5f5; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid #e74c3c;">
+                    <small style="color:#e74c3c;">ขาดงาน</small>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #e74c3c;">${absent}</div>
+                </div>
             </div>
+
+            ${absent > 0 ? `
+                <div style="max-height: 150px; overflow-y: auto; background: #fdf2f2; padding: 10px; border-radius: 10px;">
+                    <small style="color: #e74c3c; font-weight:bold;">🚩 รายชื่อคนขาดงาน:</small>
+                    <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.85rem; color: #666;">
+                        ${absentList.map(name => `<li>${name}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : `<p style="text-align:center; color:#27ae60; font-size:0.9rem;">🎉 วันนี้มาครบทุกคน!</p>`}
         `;
 
     } catch (error) {
-        content.innerHTML = '<p style="color:red; text-align:center;">❌ เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+        content.innerHTML = '<p style="color:red; text-align:center;">❌ เกิดข้อผิดพลาด</p>';
     }
 }
 
 // ฟังก์ชันปิด Modal
 function closeSummaryModal() {
     document.getElementById('summaryModal').style.display = "none";
+}
+
+function updateDateDropdown(data) {
+    const filterSelect = document.getElementById('filterDate');
+    if (!filterSelect) return;
+
+    const currentValue = filterSelect.value;
+    const availableDates = Object.keys(data).sort((a, b) => b.localeCompare(a));
+
+    // เปลี่ยนคำอธิบายในตัวเลือกแรกให้สื่อถึงการ "ดูทั้งหมด"
+    let options = '<option value="">📅 แสดงประวัติทั้งหมด</option>';
+
+    availableDates.forEach(date => {
+        options += `<option value="${date}">วันที่ ${date}</option>`;
+    });
+
+    filterSelect.innerHTML = options;
+
+    if (currentValue && availableDates.includes(currentValue)) {
+        filterSelect.value = currentValue;
+    }
+}
+
+// แก้ไขฟังก์ชันรีเซ็ต (เผื่อเรียกใช้จากที่อื่น)
+function resetFilter() {
+    const filterSelect = document.getElementById('filterDate');
+    if (filterSelect) {
+        filterSelect.value = ""; // กลับไปที่ "แสดงประวัติทั้งหมด"
+        listenToFirebase(); // สั่งอัปเดตตาราง
+    }
+}
+
+// แก้ไขฟังก์ชัน listenToFirebase เดิมเล็กน้อยเพื่อให้เรียกใช้ Dropdown
+function listenToFirebase() {
+    db.ref('attendance').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            renderUserTable([]);
+            renderAdminTable([]);
+            updateRanking([]);
+            return;
+        }
+
+        // --- เพิ่มบรรทัดนี้เพื่ออัปเดตรายการวันที่ให้เลือก ---
+        updateDateDropdown(data);
+
+        const allData = [];
+        Object.keys(data).forEach(date => {
+            Object.keys(data[date]).forEach(name => {
+                allData.push({ date, name, status: data[date][name].status });
+            });
+        });
+
+        const filterSelect = document.getElementById('filterDate');
+        const filterDate = filterSelect ? filterSelect.value : "";
+
+        const displayData = filterDate ? allData.filter(i => i.date === filterDate) : allData;
+
+        renderUserTable(displayData);
+        renderAdminTable(displayData);
+        updateRanking(allData);
+    });
 }
