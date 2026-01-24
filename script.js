@@ -517,8 +517,14 @@ async function showDailySummary() {
 }
 
 // --- ฟังก์ชันแชร์ข้อมูล ---
+// 1. ฟังก์ชันแชร์เป็นข้อความ (Text)
 async function shareSummary(s) {
-    const text = `📊 สรุปการมาทำงาน ม.4/1 \n📅 วันที่: ${s.date}\n------------------\n✅ มาทำงาน: ${s.present} คน\n❌ ขาดงาน: ${s.absent} คน\n${s.absent > 0 ? `🚩 รายชื่อคนขาด:\n${s.absentList.map((name, i) => (i + 1) + '. ' + name).join('\n')}` : '🎉 วันนี้มาครบทุกคน!'}\n------------------\nจากระบบเช็คชื่อ ม.4/1 \nhttps://smte18.vercel.app`;
+    // ปรับให้รายชื่อคนขาดเรียงเป็นบรรทัดพร้อมเลขลำดับ
+    const absentText = s.absent > 0
+        ? s.absentList.map((name, i) => `${i + 1}. ${name}`).join('\n')
+        : '🎉 วันนี้มาครบทุกคน!';
+
+    const text = `📊 สรุปการมาทำงาน ม.4/1\n📅 วันที่: ${s.date}\n------------------\n✅ มาทำงาน: ${s.present} คน\n❌ ขาดงาน: ${s.absent} คน\n------------------\n🚩 รายชื่อคนขาด:\n${absentText}\n------------------\nจากระบบเช็คชื่อ ม.4/1\nhttps://smte18.vercel.app`;
 
     if (navigator.share) {
         try {
@@ -527,10 +533,9 @@ async function shareSummary(s) {
                 text: text
             });
         } catch (err) {
-            console.log("Share cancelled or failed", err);
+            console.log("Share cancelled", err);
         }
     } else {
-        // กรณี Browser ไม่รองรับการแชร์ (เช่น บนคอม) ให้คัดลอกข้อความแทน
         const tempElem = document.createElement('textarea');
         tempElem.value = text;
         document.body.appendChild(tempElem);
@@ -541,106 +546,59 @@ async function shareSummary(s) {
     }
 }
 
+// 2. ฟังก์ชันแชร์เป็นรูปภาพ (Image)
 async function shareAsImage(date) {
     const captureArea = document.getElementById('captureArea');
     const btn = document.getElementById('btnCapture');
 
-    // แสดงสถานะว่ากำลังทำงาน
+    if (!captureArea) return;
+
+    // แสดงสถานะกำลังโหลดบนปุ่ม
     const originalText = btn.innerHTML;
     btn.innerHTML = "⌛ กำลังเตรียมรูปภาพ...";
-    btn.style.opacity = "0.7";
     btn.disabled = true;
 
     try {
         const canvas = await html2canvas(captureArea, {
-            scale: 2, // เพิ่มความละเอียดภาพ
+            scale: 2,
             backgroundColor: "#ffffff",
-            useCORS: true
+            useCORS: true,
+            logging: false
         });
 
         canvas.toBlob(async (blob) => {
+            if (!blob) return;
             const file = new File([blob], `summary-${date}.png`, { type: 'image/png' });
 
-            // ตรวจสอบว่าเครื่องรองรับการแชร์ไฟล์หรือไม่ (iOS/Android รองรับ)
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: `สรุปข้อมูลวันที่ ${date}`,
-                });
-            } else {
-                // ถ้าแชร์ไม่ได้ (เช่น บนคอม) ให้ดาวน์โหลดแทน
-                const link = document.createElement('a');
-                link.download = `Summary-${date}.png`;
-                link.href = URL.createObjectURL(blob);
-                link.click();
-                alert("📋 ดาวน์โหลดรูปภาพลงเครื่องแล้ว (เบราว์เซอร์นี้ไม่รองรับการส่งไฟล์ภาพโดยตรง)");
-            }
-
-            // คืนค่าปุ่ม
-            btn.innerHTML = originalText;
-            btn.style.opacity = "1";
-            btn.disabled = false;
-        });
-    } catch (err) {
-        console.error(err);
-        alert("❌ เกิดข้อผิดพลาดในการสร้างรูปภาพ");
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-
-// --- ฟังก์ชันสำหรับสร้างรูปภาพจากสรุปและแชร์ ---
-async function shareSummaryAsImage() {
-    const summaryCard = document.querySelector('.summary-card-capture');
-    if (!summaryCard) return;
-
-    try {
-        // เปลี่ยนปุ่มเป็นสถานะกำลังโหลด
-        const shareBtn = document.getElementById('shareImgBtn');
-        const originalText = shareBtn.innerHTML;
-        shareBtn.innerHTML = "⌛ กำลังสร้างรูปภาพ...";
-        shareBtn.disabled = true;
-
-        // แปลง HTML เป็น Canvas
-        const canvas = await html2canvas(summaryCard, {
-            backgroundColor: "#ffffff",
-            scale: 2, // เพิ่มความชัดของรูป
-            logging: false,
-            useCORS: true
-        });
-
-        // แปลง Canvas เป็น Blob (ไฟล์ภาพ)
-        canvas.toBlob(async (blob) => {
-            const file = new File([blob], `summary-${window.currentSummary.date}.png`, { type: 'image/png' });
-
-            // ตรวจสอบว่า Browser รองรับการแชร์ไฟล์หรือไม่
+            // ตรวจสอบการแชร์ไฟล์ (มือถือส่วนใหญ่รองรับ)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
                         files: [file],
-                        title: 'สรุปการมาทำงาน',
-                        text: `สรุปการมาทำงานวันที่ ${window.currentSummary.date}`
+                        title: `สรุปข้อมูลวันที่ ${date}`,
                     });
-                } catch (err) {
-                    console.error("Share failed:", err);
+                } catch (shareErr) {
+                    console.log("Share failed", shareErr);
                 }
             } else {
-                // ถ้าแชร์ไม่ได้ (เช่นบนคอม) ให้ทำการดาวน์โหลดรูปแทน
+                // สำหรับ PC ให้ดาวน์โหลดรูปภาพ
                 const link = document.createElement('a');
-                link.download = `summary-${window.currentSummary.date}.png`;
+                link.download = `Summary-${date}.png`;
                 link.href = URL.createObjectURL(blob);
                 link.click();
-                alert("📋 ระบบดาวน์โหลดรูปภาพลงเครื่องให้แล้ว เนื่องจากเบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง");
+                alert("📋 เบราว์เซอร์ไม่รองรับการส่งไฟล์ภาพโดยตรง ระบบจึงดาวน์โหลดรูปลงเครื่องให้แทน");
             }
 
             // คืนค่าปุ่ม
-            shareBtn.innerHTML = originalText;
-            shareBtn.disabled = false;
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }, 'image/png');
 
-    } catch (error) {
-        console.error("Error creating image:", error);
-        alert("❌ ไม่สามารถสร้างรูปภาพได้");
+    } catch (err) {
+        console.error("Capture Error:", err);
+        alert("❌ เกิดข้อผิดพลาดในการสร้างรูปภาพ");
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
