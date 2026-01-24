@@ -405,6 +405,7 @@ function switchDashboardTab(tabName) {
 }
 
 // --- ปรับปรุงหน้าตา Summary Popup ให้พรีเมียมขึ้น ---
+// --- ฟังก์ชันแสดงสรุปรายวันแบบ Popup ---
 async function showDailySummary() {
     const selectedDate = document.getElementById('filterDate').value;
     const modal = document.getElementById('summaryModal');
@@ -440,44 +441,206 @@ async function showDailySummary() {
                 present++;
             } else {
                 absent++;
-                absentList.push(key); // เก็บชื่อคนขาดไว้แสดง
+                absentList.push(key);
             }
         });
 
         const presentPercent = ((present / total) * 100).toFixed(0);
 
-        content.innerHTML = `
-            <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align:center;">
-                <span style="font-size: 0.9rem; color: #555;">สถิติการมาทำงาน</span>
-                <h2 style="margin: 5px 0; color: #2c3e50;">${presentPercent}%</h2>
-                <div style="width:100%; background:#ddd; height:8px; border-radius:10px; overflow:hidden;">
-                    <div style="width:${presentPercent}%; background:#27ae60; height:100%;"></div>
-                </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom:20px;">
-                <div style="background: #eafaf1; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid #2ecc71;">
-                    <small style="color:#27ae60;">มาทำงาน</small>
-                    <div style="font-size: 1.8rem; font-weight: bold; color: #27ae60;">${present}</div>
-                </div>
-                <div style="background: #fff5f5; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid #e74c3c;">
-                    <small style="color:#e74c3c;">ขาดงาน</small>
-                    <div style="font-size: 1.8rem; font-weight: bold; color: #e74c3c;">${absent}</div>
-                </div>
-            </div>
+        // เก็บข้อมูลสรุปไว้ใน Object เพื่อใช้สำหรับฟังก์ชันแชร์
+        const summaryData = {
+            date: selectedDate,
+            total: total,
+            present: present,
+            absent: absent,
+            absentList: absentList
+        };
 
-            ${absent > 0 ? `
-                <div style="max-height: 150px; overflow-y: auto; background: #fdf2f2; padding: 10px; border-radius: 10px;">
-                    <small style="color: #e74c3c; font-weight:bold;">🚩 รายชื่อคนขาดงาน:</small>
-                    <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.85rem; color: #666;">
-                        ${absentList.map(name => `<li>${name}</li>`).join('')}
-                    </ul>
+        content.innerHTML = `
+    <div id="captureArea" class="summary-card-capture" style="padding: 20px; background: white; border-radius: 20px;">
+        <div style="background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; text-align:center; box-shadow: 0 4px 10px rgba(52,152,219,0.3);">
+            <span style="font-size: 0.8rem; opacity: 0.9;">สรุปข้อมูลประจำวันที่</span>
+            <h3 style="margin: 5px 0; font-size: 1.3rem;">📅 ${selectedDate}</h3>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align:center; border: 1px solid #eee;">
+            <span style="font-size: 0.9rem; color: #555;">อัตราการมาทำงาน</span>
+            <h2 style="margin: 5px 0; color: #2c3e50;">${presentPercent}%</h2>
+            <div style="width:100%; background:#ddd; height:8px; border-radius:10px; overflow:hidden;">
+                <div style="width:${presentPercent}%; background:#27ae60; height:100%;"></div>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom:20px;">
+            <div style="background: #eafaf1; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid #2ecc71;">
+                <div style="font-size: 1.8rem; font-weight: bold; color: #27ae60;">${present}</div>
+                <small style="color:#27ae60;">✅ มาทำงาน</small>
+            </div>
+            <div style="background: #fff5f5; padding: 15px; border-radius: 15px; text-align: center; border-bottom: 4px solid #e74c3c;">
+                <div style="font-size: 1.8rem; font-weight: bold; color: #e74c3c;">${absent}</div>
+                <small style="color:#e74c3c;">❌ ขาดงาน</small>
+            </div>
+        </div>
+
+        ${absent > 0 ? `
+            <div style="background: #fdf2f2; padding: 12px; border-radius: 12px; border: 1px solid #fadbd8;">
+                <small style="color: #e74c3c; font-weight:bold;">🚩 รายชื่อคนขาดงาน (${absent} คน):</small>
+                <div style="margin-top: 10px; font-size: 0.9rem; color: #c0392b; line-height: 1.8;">
+                    ${absentList.map((name, index) => `
+                        <div style="border-bottom: 1px dashed #fadbd8; padding: 2px 0;">
+                            ${index + 1}. ${name}
+                        </div>
+                    `).join('')}
                 </div>
-            ` : `<p style="text-align:center; color:#27ae60; font-size:0.9rem;">🎉 วันนี้มาครบทุกคน!</p>`}
-        `;
+            </div>
+        ` : `<p style="text-align:center; color:#27ae60; font-weight:bold;">🎉 วันนี้มาครบทุกคน!</p>`}
+        
+        <div style="text-align: center; margin-top: 15px; color: #bdc3c7; font-size: 0.7rem;">
+            Generated by CheckName SMTE
+        </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px; width: 100%;">
+        <button id="btnCapture" onclick="shareAsImage('${selectedDate}')" style="width:100%; padding:15px; border-radius:12px; border:none; background:#e67e22; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);">
+            📸 แชร์เป็นรูปภาพ
+        </button>
+        <button onclick='shareSummary(${JSON.stringify(summaryData)})' style="width:100%; padding:10px; border-radius:12px; border:1px solid #ccc; background:white; color:#666; font-size:0.8rem; cursor:pointer;">
+            แชร์เป็นข้อความ
+        </button>
+    </div>
+`;
 
     } catch (error) {
-        content.innerHTML = '<p style="color:red; text-align:center;">❌ เกิดข้อผิดพลาด</p>';
+        console.error(error);
+        content.innerHTML = '<p style="color:red; text-align:center;">❌ เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+    }
+}
+
+// --- ฟังก์ชันแชร์ข้อมูล ---
+async function shareSummary(s) {
+    const text = `📊 สรุปการมาทำงาน ม.4/1 \n📅 วันที่: ${s.date}\n------------------\n✅ มาทำงาน: ${s.present} คน\n❌ ขาดงาน: ${s.absent} คน\n${s.absent > 0 ? `🚩 รายชื่อคนขาด:\n${s.absentList.map((name, i) => (i + 1) + '. ' + name).join('\n')}` : '🎉 วันนี้มาครบทุกคน!'}\n------------------\nจากระบบเช็คชื่อ ม.4/1 \nhttps://smte18.vercel.app`;
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'สรุปการมาทำงาน',
+                text: text
+            });
+        } catch (err) {
+            console.log("Share cancelled or failed", err);
+        }
+    } else {
+        // กรณี Browser ไม่รองรับการแชร์ (เช่น บนคอม) ให้คัดลอกข้อความแทน
+        const tempElem = document.createElement('textarea');
+        tempElem.value = text;
+        document.body.appendChild(tempElem);
+        tempElem.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempElem);
+        alert("📋 คัดลอกสรุปเป็นข้อความแล้ว! คุณสามารถกดวาง (Paste) ได้เลย");
+    }
+}
+
+async function shareAsImage(date) {
+    const captureArea = document.getElementById('captureArea');
+    const btn = document.getElementById('btnCapture');
+
+    // แสดงสถานะว่ากำลังทำงาน
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "⌛ กำลังเตรียมรูปภาพ...";
+    btn.style.opacity = "0.7";
+    btn.disabled = true;
+
+    try {
+        const canvas = await html2canvas(captureArea, {
+            scale: 2, // เพิ่มความละเอียดภาพ
+            backgroundColor: "#ffffff",
+            useCORS: true
+        });
+
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], `summary-${date}.png`, { type: 'image/png' });
+
+            // ตรวจสอบว่าเครื่องรองรับการแชร์ไฟล์หรือไม่ (iOS/Android รองรับ)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: `สรุปข้อมูลวันที่ ${date}`,
+                });
+            } else {
+                // ถ้าแชร์ไม่ได้ (เช่น บนคอม) ให้ดาวน์โหลดแทน
+                const link = document.createElement('a');
+                link.download = `Summary-${date}.png`;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                alert("📋 ดาวน์โหลดรูปภาพลงเครื่องแล้ว (เบราว์เซอร์นี้ไม่รองรับการส่งไฟล์ภาพโดยตรง)");
+            }
+
+            // คืนค่าปุ่ม
+            btn.innerHTML = originalText;
+            btn.style.opacity = "1";
+            btn.disabled = false;
+        });
+    } catch (err) {
+        console.error(err);
+        alert("❌ เกิดข้อผิดพลาดในการสร้างรูปภาพ");
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// --- ฟังก์ชันสำหรับสร้างรูปภาพจากสรุปและแชร์ ---
+async function shareSummaryAsImage() {
+    const summaryCard = document.querySelector('.summary-card-capture');
+    if (!summaryCard) return;
+
+    try {
+        // เปลี่ยนปุ่มเป็นสถานะกำลังโหลด
+        const shareBtn = document.getElementById('shareImgBtn');
+        const originalText = shareBtn.innerHTML;
+        shareBtn.innerHTML = "⌛ กำลังสร้างรูปภาพ...";
+        shareBtn.disabled = true;
+
+        // แปลง HTML เป็น Canvas
+        const canvas = await html2canvas(summaryCard, {
+            backgroundColor: "#ffffff",
+            scale: 2, // เพิ่มความชัดของรูป
+            logging: false,
+            useCORS: true
+        });
+
+        // แปลง Canvas เป็น Blob (ไฟล์ภาพ)
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], `summary-${window.currentSummary.date}.png`, { type: 'image/png' });
+
+            // ตรวจสอบว่า Browser รองรับการแชร์ไฟล์หรือไม่
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: 'สรุปการมาทำงาน',
+                        text: `สรุปการมาทำงานวันที่ ${window.currentSummary.date}`
+                    });
+                } catch (err) {
+                    console.error("Share failed:", err);
+                }
+            } else {
+                // ถ้าแชร์ไม่ได้ (เช่นบนคอม) ให้ทำการดาวน์โหลดรูปแทน
+                const link = document.createElement('a');
+                link.download = `summary-${window.currentSummary.date}.png`;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                alert("📋 ระบบดาวน์โหลดรูปภาพลงเครื่องให้แล้ว เนื่องจากเบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง");
+            }
+
+            // คืนค่าปุ่ม
+            shareBtn.innerHTML = originalText;
+            shareBtn.disabled = false;
+        }, 'image/png');
+
+    } catch (error) {
+        console.error("Error creating image:", error);
+        alert("❌ ไม่สามารถสร้างรูปภาพได้");
     }
 }
 
