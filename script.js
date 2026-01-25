@@ -16,36 +16,36 @@ const db = firebase.database();
 
 // 2. ข้อมูลสมาชิก (30 คน)
 const students = [
-    { fullname: "นายรัตนโกสินทร์ สาดแสง", nickname: "สิงโต" },
-    { fullname: "นายธัญวิน อร่ามวงศ์วิทย์", nickname: "อะฟิฟ" },
-    { fullname: "นายกันตภณ เพชรพูล", nickname: "เซียมซี" },
-    { fullname: "นายวิชัย หลีหมัด", nickname: "รุก" },
-    { fullname: "นายกิตติพัทธ์ แช่ลิ่ม", nickname: "น็อต" },
-    { fullname: "นายธีรัตม์ ทองชูช่วย", nickname: "เท็น" },
-    { fullname: "นายศิระศิลป์ เบ็ญหยีหมาน", nickname: "อิลญีน" },
-    { fullname: "นายแสงอรุณ ไพโรจน์", nickname: "ฟีโน่" },
-    { fullname: "นายอธิวัชร์ เภอโส๊ะ", nickname: "ธาม" },
-    { fullname: "นายภานุพัฒน์ หลังปูเต๊ะ", nickname: "ไก่มีน" },
-    { fullname: "นายฐาปณวัชร์ แช่วุ่น", nickname: "วัชร์" },
-    { fullname: "นายฐาปณวิชญ์ แช่วุ่น", nickname: "วิชญ์" },
-    { fullname: "นายธีระพิชัย ศุภณัฏฐ์ปทุม", nickname: "หมิง" },
-    { fullname: "นายอัฟฟาน หลีเส็ม", nickname: "อัฟฟาน" },
-    { fullname: "นางสาวธนัสถา แช่เจ่", nickname: "เม่ย" },
-    { fullname: "นางสาวหนึ่งฤทัย รัตนอุดม", nickname: "มี่" },
-    { fullname: "นางสาวธมน ชาลีเปรี่ยม", nickname: "ธมน" },
-    { fullname: "นางสาวปัณณิกา มัณฑะนานนท์", nickname: "ปัน" },
-    { fullname: "นางสาวนภาศิริ อาทรวิริยากุล", nickname: "นภา" },
-    { fullname: "นางสาวพิมพ์นานา เกียรติเสนกุล", nickname: "นานา" },
-    { fullname: "นางสาวธัญวรัตน์ รัตนกาญจน์", nickname: "ยิม" },
-    { fullname: "นางสาวฐิติวรดา หมานหมัด", nickname: "โมจิ" },
-    { fullname: "นางสาวนิจิตตา พิพัฒน์นิธิกุลชัย", nickname: "ชมพู่" },
-    { fullname: "นางสาวอรสา กิ้มลั่น", nickname: "มิลล์" },
-    { fullname: "นางสาวรัญชิดา หมานหนับ", nickname: "ชิดา" },
-    { fullname: "นางสาวกานต์สิรี สูขมิ่ง", nickname: "ปาน" },
-    { fullname: "นางสาวลลนา สังข์แก้ว", nickname: "ตอง" },
-    { fullname: "นางสาวธัญญรัตน์ เส้งนนท์", nickname: "เทียน" },
-    { fullname: "นางสาวภูริชญา โสะบิลเมาะ", nickname: "นานะ" },
-    { fullname: "นางสาวกัญญาภัทร แสงรักษ์", nickname: "ด้า" }
+    { fullname: "นายรัตนโกสินทร์ สาดแสง", nickname: "สิงโต", image: "std1.jpeg" },
+    { fullname: "นายธัญวิน อร่ามวงศ์วิทย์", nickname: "อะฟิฟ", image: "std2.jpeg" },
+    { fullname: "นายกันตภณ เพชรพูล", nickname: "เซียมซี", image: "std3.jpeg" },
+    { fullname: "นายวิชัย หลีหมัด", nickname: "รุก", image: "std4.jpeg" },
+    { fullname: "นายกิตติพัทธ์ แช่ลิ่ม", nickname: "น็อต", image: "std5.jpeg" },
+    { fullname: "นายธีรัตม์ ทองชูช่วย", nickname: "เท็น", image: "std6.jpeg" },
+    { fullname: "นายศิระศิลป์ เบ็ญหยีหมาน", nickname: "อิลญีน", image: "std7.jpeg" },
+    { fullname: "นายแสงอรุณ ไพโรจน์", nickname: "ฟีโน่", image: "std8.jpeg" },
+    { fullname: "นายอธิวัชร์ เภอโส๊ะ", nickname: "ธาม", image: "std9.jpeg" },
+    { fullname: "นายภานุพัฒน์ หลังปูเต๊ะ", nickname: "ไก่มีน", image: "std10.jpeg" },
+    { fullname: "นายฐาปณวัชร์ แช่วุ่น", nickname: "วัชร์", image: "std11.jpeg" },
+    { fullname: "นายฐาปณวิชญ์ แช่วุ่น", nickname: "วิชญ์", image: "std12.jpeg" },
+    { fullname: "นายธีระพิชัย ศุภณัฏฐ์ปทุม", nickname: "หมิง", image: "std13.jpeg" },
+    { fullname: "นายอัฟฟาน หลีเส็ม", nickname: "อัฟฟาน", image: "std14.jpeg" },
+    { fullname: "นางสาวธนัสถา แช่เจ่", nickname: "เม่ย", image: "std15.jpeg" },
+    { fullname: "นางสาวหนึ่งฤทัย รัตนอุดม", nickname: "มี่", image: "std16.jpeg" },
+    { fullname: "นางสาวธมน ชาลีเปรี่ยม", nickname: "ธมน", image: "std17.jpeg" },
+    { fullname: "นางสาวปัณณิกา มัณฑะนานนท์", nickname: "ปัน", image: "std18.jpeg" },
+    { fullname: "นางสาวนภาศิริ อาทรวิริยากุล", nickname: "นภา", image: "std19.jpeg" },
+    { fullname: "นางสาวพิมพ์นานา เกียรติเสนกุล", nickname: "นานา", image: "std20.jpeg" },
+    { fullname: "นางสาวธัญวรัตน์ รัตนกาญจน์", nickname: "ยิม", image: "std21.jpeg" },
+    { fullname: "นางสาวฐิติวรดา หมานหมัด", nickname: "โมจิ", image: "std22.jpeg" },
+    { fullname: "นางสาวนิจิตตา พิพัฒน์นิธิกุลชัย", nickname: "ชมพู่", image: "std23.jpeg" },
+    { fullname: "นางสาวอรสา กิ้มลั่น", nickname: "มิลล์", image: "std24.jpeg" },
+    { fullname: "นางสาวรัญชิดา หมานหนับ", nickname: "ชิดา", image: "std25.jpeg" },
+    { fullname: "นางสาวกานต์สิรี สูขมิ่ง", nickname: "ปาน", image: "std26.jpeg" },
+    { fullname: "นางสาวลลนา สังข์แก้ว", nickname: "ตอง", image: "std27.jpeg" },
+    { fullname: "นางสาวธัญญรัตน์ เส้งนนท์", nickname: "เทียน", image: "std28.jpeg" },
+    { fullname: "นางสาวภูริชญา โสะบิลเมาะ", nickname: "นานะ", image: "std29.jpeg" },
+    { fullname: "นางสาวกัญญาภัทร แสงรักษ์", nickname: "ด้า", image: "std30.jpeg" }
 ];
 
 const HASHED_PASSWORD = "ed8b00d9c766c03570a1a0a7e4d52c3d";
@@ -109,15 +109,26 @@ function renderIndividualGrid() {
     const listContainer = document.getElementById('individualMemberList');
     if (!listContainer) return;
 
-    listContainer.innerHTML = students.map((std, index) => `
-        <button class="btn-name-row" 
-                style="animation-delay: ${index * 0.03}s" 
-                onclick="showIndividualHistory('${std.fullname} (${std.nickname})')">
-            <span class="st-no">${index + 1}</span>
-            <span class="name">${std.fullname} (${std.nickname})</span>
-            <span style="margin-left: auto; color: #3498db;">❯</span>
-        </button>
-    `).join('');
+    listContainer.innerHTML = students.map((std, index) => {
+        const imgUrl = std.image || 'https://via.placeholder.com/50';
+
+        return `
+            <button class="btn-name-row" 
+                    style="animation-delay: ${index * 0.03}s; display: flex; align-items: center; gap: 15px;" 
+                    onclick="showIndividualHistory('${std.fullname} (${std.nickname})', '${imgUrl}')">
+                
+                <span class="st-no">${index + 1}</span>
+                
+                <div class="avatar-container" style="width: 40px; height: 40px; overflow: hidden; border-radius: 50%; background: #eee;">
+                    <img src="${imgUrl}" alt="${std.nickname}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+
+                <span class="name">${std.fullname} (${std.nickname})</span>
+                
+                <span style="margin-left: auto; color: #3498db;">❯</span>
+            </button>
+        `;
+    }).join('');
 }
 
 // --- ฟังก์ชันปิด Modal เมื่อคลิกพื้นหลัง ---
@@ -134,37 +145,59 @@ window.addEventListener('click', function (event) {
 });
 
 // --- ฟังก์ชันเปิด Popup ประวัติรายคน ---
-async function showIndividualHistory(fullName) {
+async function showIndividualHistory(fullName, imgUrl) {
     const modal = document.getElementById('individualModal');
     const nameHeader = document.getElementById('selectedName');
     const tableBody = document.getElementById('individualTableBody');
+
+    // 1. ปรับชื่อให้อยู่ตรงกลาง
+    nameHeader.style.textAlign = "center";
+    nameHeader.style.display = "block";
+    nameHeader.style.width = "100%";
     nameHeader.innerText = fullName;
-    tableBody.innerHTML = '<tr><td colspan="2">กำลังโหลดประวัติ...</td></tr>';
+
+    // 2. จัดการรูปภาพใน Modal
+    let imgElement = document.getElementById('selectedImage');
+    if (!imgElement) {
+        imgElement = document.createElement('img');
+        imgElement.id = 'selectedImage';
+        // ใช้ margin: 0 auto เพื่อจัดรูปให้อยู่ตรงกลาง
+        imgElement.style.cssText = "width: 90px; height: 90px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 15px; border: 3px solid #3498db; box-shadow: 0 2px 10px rgba(0,0,0,0.1);";
+        nameHeader.parentNode.insertBefore(imgElement, nameHeader);
+    }
+    imgElement.src = imgUrl || 'https://via.placeholder.com/90';
+
+    // เตรียมหน้าจอโหลดข้อมูล
+    tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center;">กำลังโหลดประวัติ...</td></tr>';
     modal.style.display = "block";
+
     try {
         const snapshot = await db.ref('attendance').once('value');
         const data = snapshot.val();
         let historyHtml = '';
         let hasData = false;
+
         if (data) {
             const dates = Object.keys(data).sort((a, b) => b.localeCompare(a));
             const safeName = getSafeName(fullName);
+
             dates.forEach(date => {
-                if (data[date][safeName]) {
+                if (data[date] && data[date][safeName]) {
                     hasData = true;
                     const status = data[date][safeName].status;
                     const color = status === 'ขาดงาน' ? '#e74c3c' : '#27ae60';
                     historyHtml += `
                         <tr>
-                            <td>${date}</td>
-                            <td style="color: ${color}; font-weight:bold;">${status}</td>
+                            <td style="text-align: center;">${date}</td>
+                            <td style="color: ${color}; font-weight:bold; text-align: center;">${status}</td>
                         </tr>`;
                 }
             });
         }
-        tableBody.innerHTML = hasData ? historyHtml : '<tr><td colspan="2">ไม่พบประวัติการทำงาน</td></tr>';
+        tableBody.innerHTML = hasData ? historyHtml : '<tr><td colspan="2" style="text-align:center;">ไม่พบประวัติการทำงาน</td></tr>';
     } catch (error) {
-        tableBody.innerHTML = '<tr><td colspan="2">เกิดข้อผิดพลาด</td></tr>';
+        console.error(error);
+        tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:red;">เกิดข้อผิดพลาด</td></tr>';
     }
 }
 
@@ -343,23 +376,6 @@ function updateRanking(allData) {
 window.onclick = function (event) {
     const modal = document.getElementById('individualModal');
     if (event.target == modal) closeIndividualModal();
-}
-
-// --- ฟังก์ชันแสดงสรุปรายวันแบบ Popup ---
-// --- เพิ่มฟังก์ชันเพื่อให้รายชื่อค่อยๆ วิ่งขึ้นมา (Animation) ---
-function renderIndividualGrid() {
-    const listContainer = document.getElementById('individualMemberList');
-    if (!listContainer) return;
-
-    listContainer.innerHTML = students.map((std, index) => `
-        <button class="btn-name-row" 
-                style="animation-delay: ${index * 0.03}s" 
-                onclick="showIndividualHistory('${std.fullname} (${std.nickname})')">
-            <span class="st-no">${index + 1}</span>
-            <span class="name">${std.fullname} (${std.nickname})</span>
-            <span style="margin-left: auto; color: #3498db;">❯</span>
-        </button>
-    `).join('');
 }
 
 // --- ฟังก์ชันปิด Modal เมื่อคลิกพื้นหลัง ---

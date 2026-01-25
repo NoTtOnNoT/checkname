@@ -707,3 +707,16 @@ input[type="date"] {
     display: none;
     animation: fadeInUp 0.5s ease-out;
 }
+
+.avatar-container {
+    flex-shrink: 0;
+    /* ป้องกันรูปภาพโดนบีบ */
+    border: 2px solid #f0f0f0;
+}
+
+.btn-name-row {
+    padding: 10px 15px;
+    /* เพิ่มพื้นที่ว่างข้างในปุ่ม */
+    display: flex;
+    align-items: center;
+}
